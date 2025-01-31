@@ -1,5 +1,7 @@
 # Pynus
 
+<div align="center"><img src="images/Pynus.png" width="200"></div>
+
 Pynus is a Python library for creating menu-based CLI applications. It provides an intuitive way to structure menus using a stack-based approach while leveraging colored selections with `RainbowPicker`.
 
 ## Features
