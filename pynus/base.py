@@ -3,7 +3,7 @@ from rainbow_pick import RainbowPicker
 
 
 class PynusBase(RainbowPicker):
-    """Base class for Pynus menus"""
+    """Base class for Pynus single choices menus"""
 
     matches: dict = {}
 
@@ -18,7 +18,6 @@ class PynusBase(RainbowPicker):
         :type instance: object, optional"""
 
         options.append("Back")
-        print(options)
 
         super().__init__(options, title)
         self.instance = instance
@@ -73,6 +72,51 @@ class PynusBase(RainbowPicker):
         for key, func in self.matches.items():
             if kwargs.get("instance") == key or kwargs.get("index") == key:
                 return func(self)
+
+
+class PynusMultiselect(RainbowPicker):
+    """Base class for multiple selection menus"""
+
+    matches: dict = {}
+
+    def __init__(self, title: str, options: list[object], instance: object = None):
+        """Initialize a PynusMultiselect instance
+
+        :param title: The title of the Pynus mmenu
+        :type title: str
+        :param options: The options to pick among
+        :type options: list[object]
+        :param instance: The instance to work on if needed, defaults to None
+        :type instance: object, optional"""
+
+        super().__init__(options, title, multiselect=True)
+        self.instance = instance
+
+    def __call__(self):
+        """Runs the menu"""
+        return self.start()
+
+    @classmethod
+    def match_input(cls, instance: object = None):
+        """Class method which adds a callback if the instance is present among user's picked choices
+        if None is passed, then the method applies to all instance indistinctively
+
+        :param instance: The instance chosen by the user, defaults to None
+        :type isntance: object, optional"""
+
+        def inner(callback_function: callable):
+            cls.matches.update(
+                {"all" if instance is None else instance: callback_function}
+            )
+
+        return inner
+
+    def callback(self, instance: object):
+        if "all" in self.matches.keys():
+            return self.matches.get("all")(self)
+
+        else:
+            return self.matches.get(instance)(self)
 
 
 class Stack(list):

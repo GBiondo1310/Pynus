@@ -35,13 +35,9 @@ class MainMenu(PynusBase):
 
     @PynusBase.match_input(index=0)
     def go_to_submenu(self):
-        stack += SubMenu()
-    
-    @PynusBase.match_input(index=1)
-    def exit_app(self):
-        print("Exiting application")
-        quit()
-
+        stack += self
+        return SubMenu()
+        
 class SubMenu(PynusBase):
     def __init__(self):
         super().__init__("Sub Menu", ["Option A", "Option B", "Back"])
@@ -49,10 +45,12 @@ class SubMenu(PynusBase):
     @PynusBase.match_input(index=0)
     def option_a(self):
         print("You chose Option A")
+        return None
 
     @PynusBase.match_input(index=1)
     def option_b(self):
         print("You chose Option B")
+        return None
 
 if __name__ == "__main__":
     stack = Stack()
