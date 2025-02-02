@@ -1,154 +1,75 @@
 from __future__ import annotations
 from rainbow_pick import RainbowPicker
+from .stack import Stack
+
+stack = Stack()
 
 
 class PynusBase(RainbowPicker):
-    """Base class for Pynus single choices menus"""
-
-    matches: dict = {}
 
     def __init__(self, title: str, options: list[object], instance: object = None):
-        """Initializes a PynusBas instance
-
-        :param title: The title of the Pynus menu
-        :type title: str
-        :param options: The options to pick among
-        :type options: list[object]
-        :param instance: The instance to work on, defaults to None
-        :type instance: object, optional"""
-
+        self.callbacks = {}
         options.append("Back")
-
         super().__init__(options, title)
         self.instance = instance
 
-    def __call__(self, stack: Stack):
-        """Runs the menu and calls the callback function on user's choice"""
-        self.stack = stack
-        pick = self.start()
+    def start(self):
+        pick = super().start()
+
         if pick[0] == "Back":
-            return None  #: If None is returned, the stack will call ``self.back()`` in the mainloop
+            return None
+
         else:
             return self.callback(instance=pick[0], index=pick[1])
 
-    @classmethod
-    def match_input(cls, index=None, obj=None):
-        """Class method which adds a callback when a choice is match.
-
-        :param index: The index chosen by the user
-        :type index: int
-        :param obj: The object chosen by the user
-        :type obj: object
-
-        :NOTE: Only one between index and obj can be defined, if both are defined, then
-        this function will raise an error
-
-        :USAGE:
-
-        >>> class NewMenu(PynusBase):
-        >>>     def __init__(self):
-        >>>         super().__init__("New Menu", ["Option 1", Option 2", "Option 3"])
-        >>>
-        >>>     @PynusBase.match_input(index = 0)
-        >>>     def option_1(self):
-        >>>         print("You chose option 1")
-        >>>
-        >>>     @PynusBase.match_input(obj = "Option 2")
-        >>>     def option_2(self):
-        >>>         print("You chose option w")
-        """
-
+    @staticmethod
+    def add_callback(menu: PynusBase, index=None, obj=None):
         def inner(callback_function: callable):
             if index is not None and not obj:
-                cls.matches.update({index: callback_function})
+                menu.callbacks.update({index: callback_function})
+
             elif obj is not None and not index:
-                cls.matches.update({obj: callback_function})
+                menu.callbacks.update({obj: callback_function})
+
+            elif not obj and not index:
+                menu.callbacks.update({"all": callback_function})
+
             else:
                 raise Exception("Only one between index and obj can be defined")
 
         return inner
 
     def callback(self, **kwargs):
-        for key, func in self.matches.items():
+        if "all" in self.callbacks.keys():
+            return self.callbacks.get("all")(**kwargs)
+
+        for key, func in self.callbacks.items():
             if kwargs.get("instance") == key or kwargs.get("index") == key:
-                return func(self)
+                return func(**kwargs)
 
 
-class PynusMultiselect(RainbowPicker):
-    """Base class for multiple selection menus"""
-
-    matches: dict = {}
-
+class PynusMultiselect(PynusBase):
     def __init__(self, title: str, options: list[object], instance: object = None):
-        """Initialize a PynusMultiselect instance
+        super().__init__(title, options, instance)
+        self.options.pop()
+        self.multiselect = True
 
-        :param title: The title of the Pynus mmenu
-        :type title: str
-        :param options: The options to pick among
-        :type options: list[object]
-        :param instance: The instance to work on if needed, defaults to None
-        :type instance: object, optional"""
+    def start(self):
+        picks = RainbowPicker.start(self)
 
-        super().__init__(options, title, multiselect=True)
-        self.instance = instance
+        if not any(picks):
+            return None
 
-    def __call__(self):
-        """Runs the menu"""
-        return self.start()
+        common_function = self.callbacks.get("all")
 
-    @classmethod
-    def match_input(cls, instance: object = None):
-        """Class method which adds a callback if the instance is present among user's picked choices
-        if None is passed, then the method applies to all instance indistinctively
+        for pick in picks:
+            if common_function:
+                common_function(instance=pick[0], index=pick[1])
+            for key, func in self.callbacks.items():
+                if pick[0] == key or pick[1] == key:
+                    func(instance=pick[0], index=pick[1])
 
-        :param instance: The instance chosen by the user, defaults to None
-        :type isntance: object, optional"""
-
-        def inner(callback_function: callable):
-            cls.matches.update(
-                {"all" if instance is None else instance: callback_function}
-            )
-
-        return inner
-
-    def callback(self, instance: object):
-        if "all" in self.matches.keys():
-            return self.matches.get("all")(self)
-
-        else:
-            return self.matches.get(instance)(self)
+        return picks
 
 
-class Stack(list):
-    """Stack to store menus"""
-
-    cur_menu = None
-
-    def __init__(self):
-        """Initializes the Stack"""
-
-        super().__init__()
-        self.cur_menu = None
-
-    def __add__(self, menu: PynusBase):
-        """Adds a new menu to the stack simply using the ``+`` operator
-
-        :param menu: The new menu to add to the stack
-        :type menu: PynusBased inheriting classes"""
-
-        self.append(menu)
-
-    def back(self):
-        """Retreives the previous menu if any, else quits the application"""
-        try:
-            self.cur_menu = self.pop()
-        except IndexError:
-            quit()
-
-    def main_loop(self):
-        """The mainloop of the Stack"""
-        while True:
-            if not self.cur_menu:
-                self.back()  #: If no menu is returned by the last one, the previous will be retreived
-
-            self.cur_menu = self.cur_menu(self)
+callback = PynusBase.add_callback
