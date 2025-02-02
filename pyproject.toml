@@ -16,3 +16,7 @@ pynus = { workspace = true }
 dev = [
     "pynus",
 ]
+
+[tool.setuptools.packages.find]
+include = ["pynus*"]
+namespaces = false
