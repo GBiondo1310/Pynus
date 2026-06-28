@@ -9,12 +9,10 @@ class Stack(list):
             return None
 
     def push(self, object):
-        object.index = 0
         return super().append(object)
 
     def mainloop(self):
         menu = self.pop()
-        menu.index = 0
         while True:
             if not menu:
                 menu = self.pop()

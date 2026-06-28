@@ -2,211 +2,383 @@
 
 <div align="center"><img src="images/Pynus.png" width="200"></div>
 
-Pynus is a Python library for creating menu-based CLI applications. It provides an intuitive way to structure menus using a stack-based approach while leveraging colored selections with `RainbowPicker`.
+Pynus is a Python library for creating menu-based CLI applications. It provides an intuitive way to structure menus using a stack-based navigation system, with colorful terminal rendering powered by [`RainbowPicker`](https://github.com/GBiondo1310/rainbow_pick.git).
 
 ## Features
-- Easy-to-use menu system with stack-based navigation.
-- Supports customizable options and callback functions.
-- Simple decorator-based input matching.
-- Integrated with [`RainbowPicker`](https://github.com/GBiondo1310/rainbow_pick.git) for colored selections.
+
+- **Stack-based navigation** — naturally handles Back, forward, and nested menus
+- **Decorator-driven callbacks** — bind actions to menu options with `@callback`
+- **Single and multi-select** — built-in support for both modes
+- **Yes/No menu** — ready-to-use `PynusYN` class
+- **Colorful UI** — leverages RainbowPicker for colored terminal rendering
+- **Safe navigation** — "Back" option is automatically appended to single-select menus
 
 ## Installation
 
-Using ```pip```
+**pip:**
 ```sh
 pip install pynus@git+"https://github.com/GBiondo1310/Pynus.git"
 ```
 
-Using ```uv```
+**uv:**
 ```sh
-uv add https://github.com/GBiondo1310/Pynus.git
+uv add https://github.com/GBiondo1310/Pynus.git"
 ```
 
-## Concepts
+Requires Python ≥ 3.12.
 
-- ### PynusBase
-The main class of the library and all the new menus **must** inherit from this class.
+---
 
-#### Matching user's choices:
-A convenient decorator is provided by the library: ``@PynusBase.add_callback`` or ``@callback``
+## Quick Start
 
-##### How to use it:
 ```python
 from pynus import PynusBase, callback
 
-class MainMenu(PynusBase):
+class GreetingMenu(PynusBase):
     def __init__(self):
-        super().__init__(
-            title = "This is a test menu",
-            options = ["Option 1", "Option 2"]
-        )
-
-        #: Callbacks can be defined directly in the __init__ function passing self as first arg
-        @callback(self, index=0) #: index = 0 will match first option
-        def option_1(**kwargs): 
-            #: **kwargs is mandatory as index and instance will be passed in order to be able to work with them
-            index = kwargs.get("index")
-            obj = kwargs.get("instance")
-            print(f"You picked\nIndex: {index}\nOption: {obj})
-
-main_menu = MainMenu()
-
-# Callbacks can also be defined after a menu instance has been initialized passing the instance as the first arg of the callback decorator
-
-@callback(main_menu, index=1) #: index = 1 will match the second options
-def option_2(**kwargs):
-    #: **kwargs is mandatory as index and instance will be passed in order to be able to work with them
-    index = kwargs.get("index")
-    obj = kwargs.get("instance")
-    print(f"You picked\nIndex: {index}\nOption: {obj})
-
-main_menu.start()
-```
-
-- ### PynusMultiselect
-This class is a subclass of ``PynusBase`` which allows to work with multi selection menus.
-
-With this class user can pick multiple choices which will be returned by the ``PynusMultiselect.start()`` method.
-
-The decorator ``@callback`` can be used with this class as well.
-Leaving ``ìndex = None`` and ``obj = None`` in the ``@callback`` decorator will result in the
-declared function to be called on every instance selected by the user.
-
-#### How to use it
-
-```python
-
-from pynus import PynusMultiselect
-
-class MultiselectMenu(PynusMultiselect):
-    def __init__(self):
-        super().__init__(
-            title = "Multi selection menu, print out all choices",
-            options = ["This", "is", "a", "multi", "selection", "menu"]
-        )
-
-        @callback(self)
-        def print_out(**kwargs):
-            instance = kwargs.get("instance")
-            print(instance)
-
-ms_menu = MultiselectMenu()
-
-selections = ms_menu.start()
-
-#: selections variable contains a list of all selected options
-```
-
-- ### Stack
-The Stack class is no other than a modified list to which push the menus.
-The menus will then be retreived in the opposite order or pushing to go back in the menu history.
-To append the new menu to the Stack, just call the ``Stack().push()`` method.
-
-The ``Stack().mainloop()`` method allows the execution of the menus.
-
-#### How to use it
-
-```python
-
-from __future__ import annotations
-from pynus import PynusBase, stack, callback
-
-
-class Menu1(PynusBase):
-    def __init__(self):
-        super().__init__(title="Menu 1, select next menu", options=["To menu 2"])
-
+        super().__init__("Pick a greeting", ["Hello", "Goodbye"])
         self.init_callbacks()
 
     def init_callbacks(self):
         @callback(self, index=0)
-        def to_menu_2(**kwargs):
-            stack.push(self)  #: Adds this menu to the stack chronology
-            #: Return the next menu to be run in the next Stack().mainloop() iteration
-            return Menu2()
-
-
-class Menu2(PynusBase):
-    def __init__(self):
-        super().__init__(
-            title="Menu 2, callback examples",
-            options=[
-                "Execute function and go back to previous menu",
-                "Execute function and recall this menu (version 1)",
-                "Execute function and recall this menu (version 2)",
-                "Go to the next menu without adding the current one to the stack",
-                "Go to the next menu adding the current one to the stack",
-            ],
-        )
-
-        self.init_callbacks()
-
-    def init_callbacks(self):
-        @callback(self, index=0)
-        def i0(**kwargs):
-            index = kwargs.get("index")
-            input(
-                f"You choes option n° {index}\nPress ENTER to go to the previous menu..."
-            )
-
-            #: Returning None will call back the previous menu
+        def say_hello(**kwargs):
+            print("👋 Hello there!")
+            return self  # Stay on this menu
 
         @callback(self, index=1)
-        def i1(**kwargs):
-            index = kwargs.get("index")
-            input(
-                f"You chose option n° {index}\nRecalling this menu, please press ENTER..."
-            )
+        def say_goodbye(**kwargs):
+            print("👋 See you!")
+            # Returning None exits
 
-            #: Method 1 -> Adding this menu to the stack an return None
-            stack.push(self)
-
-        @callback(self, index=2)
-        def i2(**kwargs):
-            index = kwargs.get("index")
-            input(
-                f"You chose option n° {index}\nRecalling this menu, please press ENTER..."
-            )
-
-            #: Method 2 -> Returning self
-            return self
-
-        @callback(self, index=3)
-        def i3(**kwargs):
-            index = kwargs.get("index")
-            input(
-                f"You chose option n° {index}\nCalling the next menu without adding the current one to the stack, please press ENTER..."
-            )
-
-            return Menu3()
-
-        @callback(self, index=4)
-        def i4(**kwargs):
-            index = kwargs.get("index")
-            input(
-                f"You chose option n° {index}\nCalling the next menu adding the current one to the stack, please press ENTER..."
-            )
-
-            #: Method 1 -> Adding this menu to the stack an return None
-            stack.push(self)
-            return Menu3()
-
-
-class Menu3(PynusBase):
-    def __init__(self):
-        super().__init__(
-            title="Choose Back to discover the effect of the previous choice",
-            options=[],
-        )
-
-
-stack.push(Menu1())  #: Adding the first menu to the stack
-stack.mainloop()  #: Running the mainloop
-
+menu = GreetingMenu()
+menu.start()
 ```
 
+Run it and navigate with the arrow keys. Press **Enter** to select, or pick **Back** to return.
 
+---
+
+## Core Concepts
+
+### PynusBase
+
+`PynusBase` is the base class for all menus. It extends `RainbowPicker` and adds callback registration, automatic "Back" option handling, and navigation support.
+
+```python
+class PynusBase(RainbowPicker):
+    def __init__(self, title: str, options: list[object], *, include_back: bool = True, **kwargs)
+```
+
+- **`title`** — the menu title displayed at the top
+- **`options`** — list of choices (strings or objects)
+- **`include_back`** — automatically append a "Back" option (default: `True`). Set to `False` for menus that don't need it (multiselect does this automatically)
+- **`**kwargs`** — forwarded to `RainbowPicker` (e.g. `multiselect`, `indicator`, `clear_screen`)
+
+### The `@callback` decorator
+
+The `@callback` decorator binds a function to a menu option. It can match by **index**, by **option value (obj)**, or as a catch-all **"all"** handler.
+
+```python
+from pynus import PynusBase, callback
+
+menu = PynusBase("Settings", ["Theme", "Sound", "About"])
+
+# Match by index — fires when the first option ("Theme") is selected
+@callback(menu, index=0)
+def theme_handler(**kwargs):
+    print(f"You picked: {kwargs['instance']} (index {kwargs['index']})")
+    # Return a new menu or None to go back
+
+# Match by option value — fires when "Sound" is selected
+@callback(menu, obj="Sound")
+def sound_handler(**kwargs):
+    print("Sound settings")
+    return self  # Re-show this menu
+
+# Catch-all — runs for every selection (side effects first)
+@callback(menu)
+def log_selection(**kwargs):
+    print(f"Selected: {kwargs['instance']}")
+```
+
+**Dispatch order:**
+1. The **"all"** callback runs first (for side effects like logging)
+2. A **specific** callback (by index or obj) runs next — its return value is used
+3. If no specific callback matches, the **"all"** callback's return value is used as fallback
+
+### Callback return values
+
+What your callback returns controls navigation:
+
+| Return value | Behavior |
+|---|---|
+| A new menu object | Mainloop switches to that menu |
+| `self` | Current menu re-displays |
+| `None` | Goes back to the previous menu (from stack) |
+
+---
+
+## PynusYN — Yes / No Menu
+
+A built-in menu that returns `True` for Yes and `False` for No:
+
+```python
+from pynus import PynusYN
+
+yn = PynusYN("Continue?")
+result = yn.start()
+
+if result is True:
+    print("User said Yes")
+elif result is False:
+    print("User said No")
+else:
+    print("User picked Back")
+```
+
+---
+
+## PynusMultiselect — Multi-Selection
+
+`PynusMultiselect` lets users pick multiple options (using **Space** to toggle, **Enter** to confirm). It does **not** include a "Back" option.
+
+```python
+from pynus import PynusMultiselect, callback
+
+class ToppingMenu(PynusMultiselect):
+    def __init__(self):
+        super().__init__("Choose toppings", ["Cheese", "Pepperoni", "Mushrooms", "Olives"])
+        self.init_callbacks()
+
+    def init_callbacks(self):
+        @callback(self)
+        def log_topping(**kwargs):
+            print(f"  → Selected: {kwargs['instance']}")
+
+menu = ToppingMenu()
+selections = menu.start()
+print(f"\nFinal selections: {selections}")
+```
+
+Returns a list of `(option_text, index)` tuples, or `None` if nothing was selected.
+
+---
+
+## Stack Navigation
+
+The `Stack` class manages menu history. Use `stack.push()` to save the current menu before navigating to a new one, and `stack.mainloop()` to run the navigation loop.
+
+### How it works
+
+```
+User sees Menu A → picks an option
+  → callback pushes Menu A to stack and returns Menu B
+  → mainloop displays Menu B
+  → user picks "Back" (or callback returns None)
+  → mainloop pops Menu A from stack and shows it
+```
+
+### Complete example
+
+```python
+from __future__ import annotations
+from pynus import PynusBase, PynusYN, stack, callback
+
+
+class MainMenu(PynusBase):
+    def __init__(self):
+        super().__init__("Main Menu", ["Play Game", "Settings", "Quit"])
+        self.init_callbacks()
+
+    def init_callbacks(self):
+        @callback(self, index=0)
+        def play(**kwargs):
+            stack.push(self)          # Save MainMenu to stack
+            return GameMenu()
+
+        @callback(self, index=1)
+        def settings(**kwargs):
+            stack.push(self)
+            return SettingsMenu()
+
+        @callback(self, index=2)
+        def quit(**kwargs):
+            yn = PynusYN("Are you sure?")
+            result = yn.start()
+            if result is True:
+                return None           # Exit the loop
+            return self               # Stay on main menu
+
+
+class GameMenu(PynusBase):
+    def __init__(self):
+        super().__init__("Game Menu", ["New Game", "Load Game"])
+        self.init_callbacks()
+
+    def init_callbacks(self):
+        @callback(self, index=0)
+        def new_game(**kwargs):
+            print("🎮 Starting new game...")
+            return self
+
+        @callback(self, index=1)
+        def load_game(**kwargs):
+            print("💾 Loading game...")
+            return self
+
+        # "Back" returns None automatically → pops MainMenu from stack
+
+
+class SettingsMenu(PynusBase):
+    def __init__(self):
+        super().__init__("Settings", ["Volume", "Brightness"])
+        self.init_callbacks()
+
+    def init_callbacks(self):
+        @callback(self, index=0)
+        def volume(**kwargs):
+            print("🔊 Volume settings")
+            return self
+
+        @callback(self, index=1)
+        def brightness(**kwargs):
+            print("☀️  Brightness settings")
+            return self
+
+
+stack.push(MainMenu())   # Start with MainMenu
+stack.mainloop()         # Run the navigation loop
+```
+
+### Stack API
+
+| Method | Description |
+|---|---|
+| `push(menu)` | Save a menu to the history stack |
+| `pop()` | Retrieve the last menu (returns `None` if empty) |
+| `mainloop()` | Start the navigation loop |
+| `pop(index)` | Retrieve a menu at a specific position (0 = bottom) |
+
+The default `stack` instance is already created for you. You can also create your own:
+
+```python
+from pynus import Stack
+
+my_stack = Stack()
+my_stack.push(MainMenu())
+my_stack.mainloop()
+```
+
+---
+
+## Advanced: Nested callbacks & patterns
+
+### Using "all" callback for side effects
+
+The "all" callback runs for every selection before the specific callback. This is useful for logging, validation, or shared setup:
+
+```python
+class LoggedMenu(PynusBase):
+    def __init__(self):
+        super().__init__("Menu", ["A", "B"])
+        self.init_callbacks()
+
+    def init_callbacks(self):
+        @callback(self)             # Runs for every selection
+        def log(**kwargs):
+            print(f"[LOG] Option {kwargs['index']} selected")
+
+        @callback(self, index=0)    # Runs after log()
+        def option_a(**kwargs):
+            print("Handling A")
+            return MenuB()
+
+        @callback(self, index=1)
+        def option_b(**kwargs):
+            print("Handling B")
+```
+
+### Registering callbacks after initialization
+
+Callbacks don't have to be defined inside the class — you can register them on an existing instance:
+
+```python
+menu = PynusBase("Menu", ["Save", "Delete"])
+
+@callback(menu, index=0)
+def save(**kwargs):
+    print("Saving...")
+    return self
+```
+
+---
+
+## API Reference
+
+### `pynus` module exports
+
+| Name | Description |
+|---|---|
+| `PynusBase` | Base class for single-select menus |
+| `PynusMultiselect` | Class for multi-select menus |
+| `PynusYN` | Yes/No menu returning `True`/`False` |
+| `Stack` | Stack class for menu navigation |
+| `stack` | Default Stack instance |
+| `callback` | Decorator to register menu callbacks (`PynusBase.add_callback`) |
+
+### `PynusBase`
+
+```python
+class PynusBase(
+    title: str,
+    options: list[object],
+    *,
+    include_back: bool = True,
+    **kwargs
+)
+```
+
+**Methods:**
+- `start()` — display the menu and return the callback result
+- `callback(**kwargs)` — dispatch to registered callbacks
+
+**Attributes:**
+- `callbacks` — dictionary of registered callback functions
+
+### `PynusMultiselect`
+
+```python
+class PynusMultiselect(
+    title: str,
+    options: list[object],
+    **kwargs
+)
+```
+
+**Methods:**
+- `start()` — display the menu and return a list of `(option, index)` tuples, or `None`
+
+### `PynusYN`
+
+```python
+class PynusYN(title: str)
+```
+
+**Returns:** `True` (Yes), `False` (No), or `None` (Back)
+
+### `Stack`
+
+```python
+class Stack()
+```
+
+**Methods:**
+- `push(object)` — add an item to the stack
+- `pop(index=-1)` — remove and return an item (returns `None` if empty)
+- `mainloop()` — run the navigation loop
+
+---
 
 ## License
-MIT License
 
+MIT License

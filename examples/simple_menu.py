@@ -55,5 +55,5 @@ class MultiChoicesMenu(PynusMultiselect):
             input(f"Second power of {num} is {num**2}\nPress ENTER to continue...")
 
 
-stack.append(MainMenu())
+stack.push(MainMenu())
 stack.mainloop()
